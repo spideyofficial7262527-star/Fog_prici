@@ -1,0 +1,48 @@
+name: Build Mochi WiFi GIF Player
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Compile ESP32 Firmware
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Build firmware
+        run: pio run -e esp32dev
+
+      - name: Collect firmware files
+        shell: bash
+        run: |
+          mkdir -p firmware
+          cp .pio/build/esp32dev/firmware.bin firmware/
+          cp .pio/build/esp32dev/bootloader.bin firmware/
+          cp .pio/build/esp32dev/partitions.bin firmware/
+          if [ -f .pio/build/esp32dev/boot_app0.bin ]; then
+            cp .pio/build/esp32dev/boot_app0.bin firmware/
+          fi
+
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mochi-ESP32-DevKitV1-Firmware
+          path: firmware/
+          if-no-files-found: error
+          retention-days: 7
